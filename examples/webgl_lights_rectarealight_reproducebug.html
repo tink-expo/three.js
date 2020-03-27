@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - lights - rect area light</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="main.css">
+	</head>
+	<body>
+
+		<script type="module">
+			// Reproduce bug introduced in https://github.com/mrdoob/three.js/issues/16375
+			// Reference: fiddle in issue conversation - https://jsfiddle.net/9zkrbj2m/6/
+                        
+			import * as THREE from '../build/three.module.js';
+
+			import Stats from './jsm/libs/stats.module.js';
+			import { GUI } from './jsm/libs/dat.gui.module.js';
+
+			import { OrbitControls } from './jsm/controls/OrbitControls.js';
+			import { RectAreaLightUniformsLib } from './jsm/lights/RectAreaLightUniformsLib.js';
+			import { StandardNodeMaterial } from './jsm/nodes/Nodes.js';
+			import { ColorNode } from './jsm/nodes/inputs/ColorNode.js';
+			import { FloatNode } from './jsm/nodes/inputs/FloatNode.js';
+
+			var mesh, renderer, scene, camera, controls;
+			var material;
+
+			init();
+			animate();
+
+			function init() {
+
+				// renderer
+				renderer = new THREE.WebGLRenderer();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				
+				renderer.physicallyCorrectLights = true;
+			
+				renderer.toneMappingExposure = Math.pow(1, 5.0);
+				
+				renderer.gammaOutput = true;  //OLD
+				renderer.gammaFactor = 2.2;
+				
+				renderer.shadowMap.enabled = true; 
+				renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+			
+				document.body.appendChild( renderer.domElement );
+
+				// scene
+				scene = new THREE.Scene();
+				
+				// camera
+				camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 10000 );
+				camera.position.set( 20, 20, 20 );
+
+				// controls
+				controls = new OrbitControls( camera, renderer.domElement );
+				
+				// ambient
+				scene.add( new THREE.AmbientLight( 0xFFFFFF,0.7 ) );
+				
+				
+				// light
+				var spotlight = new THREE.SpotLight( 0xFFFFFF, 1,0, 42 * Math.PI / 180 ,0.15 ,1.8  );
+				spotlight.power=323;
+				spotlight.position.set(10, 4.5, 15);
+				
+				spotlight.castShadow = true;
+				spotlight.shadow.mapSize.width = 2048;
+				spotlight.shadow.mapSize.height = 2048;
+
+				spotlight.shadow.camera.far = 15;  
+				spotlight.shadow.camera.near = 0.50;
+				
+				scene.add( spotlight );
+				
+				spotlight.target.position.set(7, 1.2, 0);
+				scene.add(spotlight.target);
+				
+				// axes
+				scene.add( new THREE.AxesHelper( 20 ) );
+
+				// geometry
+				var geometry = new THREE.PlaneGeometry( 20, 20, 10 );
+
+				// material
+				// Problematic before the fault was corrected.
+				// In order to reproduce the result,
+				// Modify examples/jsm/nodes/materials/nodes/StandardNode.js -
+				// Remove lines that add ltc data textures to material uniforms -
+				// if ( UniformsLib.LTC_1 ) builder.uniforms.ltc_1 = ...
+				material = new StandardNodeMaterial();
+
+				material.color=new ColorNode(0xBBBBBB);
+				material.roughness=new FloatNode(0.33);
+				material.metalness=new FloatNode(1);
+				
+				// mesh
+				mesh = new THREE.Mesh( geometry, material );
+				mesh.rotation.x = - Math.PI / 2;
+				mesh.position.set(10, 0, 10);
+                
+                                // To amplify incorrect result visually.
+				mesh.receiveShadow=true;
+			
+				scene.add( mesh );
+				
+				
+				// geometry
+				var cgeometry = new THREE.CubeGeometry( 1, 1, 1 );
+				
+				// material
+				var cmaterial = new THREE.MeshPhysicalMaterial( {
+					color: 0xFF8888, 
+					metalness:0,
+					roughness:0.2
+				} );
+				
+				var cmesh = new THREE.Mesh( cgeometry, cmaterial );
+				cmesh.castShadow=true;
+				cmesh.position.set(10,0.5,3);
+				scene.add( cmesh );
+                
+                                RectAreaLightUniformsLib.init();
+				var rectLight = new THREE.RectAreaLight(0xffffff,1.2,1,1); 
+				rectLight.position.set(10,0.5,3.5);
+				rectLight.rotation.x = - Math.PI;
+				scene.add(rectLight);
+				
+			}
+
+			function animate() {
+
+				requestAnimationFrame( animate );
+				controls.update();
+				renderer.render( scene, camera );
+
+			}
+
+		</script>
+	</body>
+</html>

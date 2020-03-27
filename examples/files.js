@@ -71,6 +71,7 @@ var files = {
 		"webgl_lights_spotlight",
 		"webgl_lights_spotlights",
 		"webgl_lights_rectarealight",
+		"webgl_lights_rectarealight_reproducebug",
 		"webgl_lines_colors",
 		"webgl_lines_dashed",
 		"webgl_lines_fat",
